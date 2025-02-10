@@ -1,10 +1,48 @@
 use eframe::egui;
 use std::time::{Duration, Instant};
 
+#[derive(Clone)]
+struct Cue {
+    name: String,
+    start_time: Duration,
+    duration: Duration,
+    is_playing: bool,
+    progress: f32,
+}
+
+impl Cue {
+    fn new(name: &str, start_time_secs: u64, duration_secs: u64) -> Self {
+        Self {
+            name: name.to_string(),
+            start_time: Duration::from_secs(start_time_secs),
+            duration: Duration::from_secs(duration_secs),
+            is_playing: false,
+            progress: 0.0,
+        }
+    }
+
+    fn update(&mut self, current_time: Duration) {
+        if current_time >= self.start_time {
+            let elapsed_in_cue = current_time - self.start_time;
+            if elapsed_in_cue <= self.duration {
+                self.is_playing = true;
+                self.progress = elapsed_in_cue.as_secs_f32() / self.duration.as_secs_f32();
+            } else {
+                self.is_playing = false;
+                self.progress = 1.0;
+            }
+        } else {
+            self.is_playing = false;
+            self.progress = 0.0;
+        }
+    }
+}
+
 struct HaloApp {
     running: bool,
     start_time: Option<Instant>,
     elapsed: Duration,
+    cues: Vec<Cue>,
 }
 
 impl Default for HaloApp {
@@ -13,6 +51,13 @@ impl Default for HaloApp {
             running: false,
             start_time: None,
             elapsed: Duration::from_secs(0),
+            cues: vec![
+                Cue::new("Opening", 2, 5),
+                Cue::new("First Verse", 8, 10),
+                Cue::new("Chorus", 19, 8),
+                Cue::new("Bridge", 28, 12),
+                Cue::new("Finale", 41, 6),
+            ],
         }
     }
 }
@@ -31,6 +76,13 @@ impl HaloApp {
 
         format!("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, millis)
     }
+
+    fn format_duration(duration: Duration) -> String {
+        let total_secs = duration.as_secs();
+        let minutes = total_secs / 60;
+        let seconds = total_secs % 60;
+        format!("{:02}:{:02}", minutes, seconds)
+    }
 }
 
 impl eframe::App for HaloApp {
@@ -39,19 +91,22 @@ impl eframe::App for HaloApp {
         if self.running {
             if let Some(start) = self.start_time {
                 self.elapsed = start.elapsed();
+                // Update all cues
+                for cue in &mut self.cues {
+                    cue.update(self.elapsed);
+                }
             }
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // Use large text for the timecode display
-            let text_style = egui::TextStyle::Heading;
             let font_id = egui::FontId::proportional(72.0);
 
             ui.spacing_mut().item_spacing.y = 20.0;
 
             // Center the timecode display
             ui.vertical_centered(|ui| {
-                ui.add_space(40.0);
+                ui.add_space(20.0);
                 ui.label(
                     egui::RichText::new(self.format_timecode())
                         .font(font_id)
@@ -71,12 +126,6 @@ impl eframe::App for HaloApp {
                     {
                         self.running = !self.running;
                         if self.running {
-                            // calculate the start time from now substract the elapsed time
-                            // this way we can continue from where we left off
-                            // instead of starting from 0
-                            // self.start_time = Some(Instant::now());
-                            // self.elapsed = Duration::from_secs(0);
-
                             self.start_time = Some(Instant::now() - self.elapsed);
                         }
                     }
@@ -86,8 +135,55 @@ impl eframe::App for HaloApp {
                         if self.running {
                             self.start_time = Some(Instant::now());
                         }
+                        // Reset all cues
+                        for cue in &mut self.cues {
+                            cue.is_playing = false;
+                            cue.progress = 0.0;
+                        }
                     }
                 });
+            });
+
+            ui.add_space(20.0);
+
+            // Display cues with progress bars
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                for cue in &self.cues {
+                    ui.horizontal(|ui| {
+                        let active_color = if cue.is_playing {
+                            egui::Color32::from_rgb(100, 200, 100)
+                        } else {
+                            egui::Color32::from_rgb(150, 150, 150)
+                        };
+
+                        ui.label(egui::RichText::new(&cue.name).color(active_color).strong());
+
+                        ui.label(
+                            egui::RichText::new(Self::format_duration(cue.start_time))
+                                .color(active_color),
+                        );
+
+                        // Progress bar
+                        let progress_height = 8.0;
+                        let progress_response = ui.add(
+                            egui::ProgressBar::new(cue.progress)
+                                .desired_width(200.0)
+                                .desired_height(progress_height),
+                        );
+
+                        // Show duration on hover
+                        if progress_response.hovered() {
+                            egui::show_tooltip(
+                                ui.ctx(),
+                                progress_response.layer_id,
+                                egui::Id::new("duration_tooltip"),
+                                |ui| {
+                                    ui.label(format!("Duration: {}s", cue.duration.as_secs()));
+                                },
+                            );
+                        }
+                    });
+                }
             });
         });
 
