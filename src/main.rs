@@ -43,6 +43,7 @@ struct HaloApp {
     start_time: Option<Instant>,
     elapsed: Duration,
     cues: Vec<Cue>,
+    link_enabled: bool,
 }
 
 impl Default for HaloApp {
@@ -58,6 +59,7 @@ impl Default for HaloApp {
                 Cue::new("Bridge", 28, 12),
                 Cue::new("Finale", 41, 6),
             ],
+            link_enabled: false,
         }
     }
 }
@@ -97,6 +99,22 @@ impl eframe::App for HaloApp {
                 }
             }
         }
+
+        egui::TopBottomPanel::top("header").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui
+                    .button(if self.link_enabled {
+                        "Link ●"
+                    } else {
+                        "Link ○"
+                    })
+                    .clicked()
+                {
+                    self.link_enabled = !self.link_enabled;
+                    // Here you would add the actual Ableton Link connection logic
+                }
+            });
+        });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // Use large text for the timecode display
