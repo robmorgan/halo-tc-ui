@@ -102,6 +102,19 @@ impl eframe::App for HaloApp {
             }
         }
 
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("Halo", |ui| {
+                    if ui.button("About").clicked() {
+                        // Add about dialog logic here
+                    }
+                    if ui.button("Quit").clicked() {
+                        // Add quit logic here
+                    }
+                });
+            });
+        });
+
         egui::TopBottomPanel::top("header").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui
