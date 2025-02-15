@@ -44,6 +44,7 @@ struct HaloApp {
     elapsed: Duration,
     cues: Vec<Cue>,
     link_enabled: bool,
+    bpm: f32,
 }
 
 impl Default for HaloApp {
@@ -60,6 +61,7 @@ impl Default for HaloApp {
                 Cue::new("Finale", 41, 6),
             ],
             link_enabled: false,
+            bpm: 120.0,
         }
     }
 }
@@ -113,6 +115,14 @@ impl eframe::App for HaloApp {
                     self.link_enabled = !self.link_enabled;
                     // Here you would add the actual Ableton Link connection logic
                 }
+                ui.add_space(8.0);
+                ui.label("BPM:");
+                ui.add(
+                    egui::DragValue::new(&mut self.bpm)
+                        .speed(0.1)
+                        .range(20.0..=300.0)
+                        .fixed_decimals(1),
+                );
             });
         });
 
