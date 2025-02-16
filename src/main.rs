@@ -130,6 +130,12 @@ impl eframe::App for HaloApp {
                     if ui.button("About").clicked() {
                         // Add about dialog logic here
                     }
+                    if ui.button("Load Show").clicked() {
+                        // Add about dialog logic here
+                    }
+                    if ui.button("Save Show").clicked() {
+                        // Add about dialog logic here
+                    }
                     if ui.button("Quit").clicked() {
                         // Add quit logic here
                     }
