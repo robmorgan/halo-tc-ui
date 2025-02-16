@@ -233,11 +233,11 @@ impl eframe::App for HaloApp {
                         );
 
                         // Progress bar
-                        let progress_height = 8.0;
                         let progress_response = ui.add(
                             egui::ProgressBar::new(cue.progress)
                                 .desired_width(200.0)
-                                .desired_height(progress_height),
+                                .desired_height(30.0)
+                                .corner_radius(0.0),
                         );
 
                         // Show duration on hover
