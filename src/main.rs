@@ -270,6 +270,7 @@ fn main() -> eframe::Result<()> {
         viewport: eframe::egui::ViewportBuilder {
             title: Some(String::from("Halo")),
             app_id: Some(String::from("io.github.robmorgan.halo")),
+            maximized: Some(true),
             ..eframe::egui::ViewportBuilder::default()
         },
         ..Default::default()
