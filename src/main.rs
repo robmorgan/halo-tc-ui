@@ -1,4 +1,8 @@
-use eframe::egui;
+use eframe::egui::FontFamily;
+use eframe::{
+    egui,
+    epaint::text::{FontInsert, InsertFontFamily},
+};
 use std::time::{Duration, Instant};
 
 #[derive(Clone)]
@@ -68,6 +72,24 @@ impl Default for HaloApp {
 
 impl HaloApp {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+        // Load custom fonts
+        let mut fonts = egui::FontDefinitions::default();
+
+        // Add the LED font
+        fonts.font_data.insert(
+            "matrix".to_owned(),
+            std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
+                "../assets/digital-7-mono.ttf"
+            ))),
+        );
+
+        fonts.families.insert(
+            egui::FontFamily::Name("matrix".into()),
+            vec!["matrix".into()],
+        );
+
+        _cc.egui_ctx.set_fonts(fonts);
+
         Self::default()
     }
 
@@ -141,7 +163,7 @@ impl eframe::App for HaloApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // Use large text for the timecode display
-            let font_id = egui::FontId::proportional(72.0);
+            let font_id = egui::FontId::new(120.0, egui::FontFamily::Name("matrix".into()));
 
             ui.spacing_mut().item_spacing.y = 20.0;
 
@@ -151,7 +173,7 @@ impl eframe::App for HaloApp {
                 ui.label(
                     egui::RichText::new(self.format_timecode())
                         .font(font_id)
-                        .color(egui::Color32::WHITE),
+                        .color(egui::Color32::GREEN),
                 );
             });
 
