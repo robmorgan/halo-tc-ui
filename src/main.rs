@@ -49,6 +49,8 @@ struct HaloApp {
     cues: Vec<Cue>,
     link_enabled: bool,
     bpm: f32,
+    fps: f32,
+    effects_count: usize,
 }
 
 impl Default for HaloApp {
@@ -66,6 +68,8 @@ impl Default for HaloApp {
             ],
             link_enabled: false,
             bpm: 120.0,
+            fps: 44.0,
+            effects_count: 3,
         }
     }
 }
@@ -253,6 +257,14 @@ impl eframe::App for HaloApp {
                         }
                     });
                 }
+            });
+        });
+
+        egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(format!("FPS: {:.1}", self.fps));
+                ui.separator();
+                ui.label(format!("Active Effects: {}", self.effects_count));
             });
         });
 
