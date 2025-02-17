@@ -1,8 +1,4 @@
-use eframe::egui::FontFamily;
-use eframe::{
-    egui,
-    epaint::text::{FontInsert, InsertFontFamily},
-};
+use eframe::egui;
 use std::time::{Duration, Instant};
 
 #[derive(Clone)]
@@ -51,6 +47,7 @@ struct HaloApp {
     bpm: f32,
     fps: f32,
     effects_count: usize,
+    pad_states: Vec<(bool, String)>, // (is_active, label)
 }
 
 impl Default for HaloApp {
@@ -70,6 +67,20 @@ impl Default for HaloApp {
             bpm: 120.0,
             fps: 44.0,
             effects_count: 3,
+            pad_states: vec![
+                (false, "Smoke".to_string()),
+                (false, "Strobe".to_string()),
+                (false, "Laser".to_string()),
+                (false, "Flash".to_string()),
+                (false, "Burst".to_string()),
+                (false, "Pulse".to_string()),
+                (false, "Wave".to_string()),
+                (false, "Spark".to_string()),
+                (false, "Fade".to_string()),
+                (false, "Chase".to_string()),
+                (false, "Sweep".to_string()),
+                (false, "Blast".to_string()),
+            ],
         }
     }
 }
@@ -258,6 +269,35 @@ impl eframe::App for HaloApp {
                     });
                 }
             });
+
+            ui.add_space(20.0);
+            ui.label("MIDI Pads");
+            ui.add_space(10.0);
+
+            egui::Grid::new("midi_pads")
+                .spacing([10.0, 10.0])
+                .show(ui, |ui| {
+                    for (i, (active, label)) in self.pad_states.iter_mut().enumerate() {
+                        let response = ui.add(
+                            egui::Button::new(egui::RichText::new(format!("{}", label)))
+                                .min_size(egui::vec2(80.0, 80.0))
+                                .fill(if *active {
+                                    egui::Color32::from_rgb(100, 200, 100)
+                                } else {
+                                    egui::Color32::from_rgb(60, 60, 60)
+                                }),
+                        );
+
+                        if response.clicked() {
+                            *active = !*active;
+                            // Here you can add MIDI handling logic
+                        }
+
+                        if (i + 1) % 4 == 0 {
+                            ui.end_row();
+                        }
+                    }
+                });
         });
 
         egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
