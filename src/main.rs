@@ -42,6 +42,7 @@ struct HaloApp {
     running: bool,
     start_time: Option<Instant>,
     elapsed: Duration,
+    show_system_time: bool,
     cues: Vec<Cue>,
     link_enabled: bool,
     bpm: f32,
@@ -56,6 +57,7 @@ impl Default for HaloApp {
             running: false,
             start_time: None,
             elapsed: Duration::from_secs(0),
+            show_system_time: false,
             cues: vec![
                 Cue::new("Opening", 2, 5),
                 Cue::new("First Verse", 8, 10),
@@ -124,6 +126,11 @@ impl HaloApp {
         let seconds = total_secs % 60;
         format!("{:02}:{:02}", minutes, seconds)
     }
+
+    fn format_system_time(&self) -> String {
+        let now = chrono::Local::now();
+        now.format("%H:%M:%S.%3f").to_string()
+    }
 }
 
 impl eframe::App for HaloApp {
@@ -188,13 +195,28 @@ impl eframe::App for HaloApp {
 
             ui.spacing_mut().item_spacing.y = 20.0;
 
-            // Center the timecode display
             ui.vertical_centered(|ui| {
                 ui.add_space(20.0);
+                // Add toggle button here
+                if ui
+                    .button(if self.show_system_time {
+                        "Show Timecode"
+                    } else {
+                        "Show System Time"
+                    })
+                    .clicked()
+                {
+                    self.show_system_time = !self.show_system_time;
+                }
+
                 ui.label(
-                    egui::RichText::new(self.format_timecode())
-                        .font(font_id)
-                        .color(egui::Color32::GREEN),
+                    egui::RichText::new(if self.show_system_time {
+                        self.format_system_time()
+                    } else {
+                        self.format_timecode()
+                    })
+                    .font(font_id)
+                    .color(egui::Color32::GREEN),
                 );
             });
 
@@ -309,7 +331,7 @@ impl eframe::App for HaloApp {
         });
 
         // Request continuous repaint while running
-        if self.running {
+        if self.running || self.show_system_time {
             ctx.request_repaint();
         }
     }
