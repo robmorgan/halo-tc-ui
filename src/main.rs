@@ -293,7 +293,7 @@ impl eframe::App for HaloApp {
             });
 
             ui.add_space(20.0);
-            ui.label("MIDI Pads");
+            ui.label("Override Pads");
             ui.add_space(10.0);
 
             egui::Grid::new("midi_pads")
