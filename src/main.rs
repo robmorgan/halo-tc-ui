@@ -38,7 +38,13 @@ impl Cue {
     }
 }
 
+enum AppView {
+    Timeline,
+    Patch,
+}
+
 struct HaloApp {
+    current_view: AppView,
     running: bool,
     start_time: Option<Instant>,
     elapsed: Duration,
@@ -54,6 +60,7 @@ struct HaloApp {
 impl Default for HaloApp {
     fn default() -> Self {
         Self {
+            current_view: AppView::Timeline,
             running: false,
             start_time: None,
             elapsed: Duration::from_secs(0),
@@ -190,143 +197,160 @@ impl eframe::App for HaloApp {
                 // Right side elements
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("Patch").clicked() {
-                        // Add your patch button logic here
+                        self.current_view = match self.current_view {
+                            AppView::Timeline => AppView::Patch,
+                            AppView::Patch => AppView::Timeline,
+                        };
                     }
                 });
             });
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // Use large text for the timecode display
-            let font_id = egui::FontId::new(120.0, egui::FontFamily::Name("matrix".into()));
+            match self.current_view {
+                AppView::Timeline => {
+                    // Use large text for the timecode display
+                    let font_id = egui::FontId::new(120.0, egui::FontFamily::Name("matrix".into()));
 
-            ui.spacing_mut().item_spacing.y = 20.0;
+                    ui.spacing_mut().item_spacing.y = 20.0;
 
-            ui.vertical_centered(|ui| {
-                ui.add_space(20.0);
-                // Add toggle button here
-                if ui
-                    .button(if self.show_system_time {
-                        "Show Timecode"
-                    } else {
-                        "Show System Time"
-                    })
-                    .clicked()
-                {
-                    self.show_system_time = !self.show_system_time;
-                }
-
-                ui.label(
-                    egui::RichText::new(if self.show_system_time {
-                        self.format_system_time()
-                    } else {
-                        self.format_timecode()
-                    })
-                    .font(font_id)
-                    .color(egui::Color32::GREEN),
-                );
-            });
-
-            // Add some space before the buttons
-            ui.add_space(20.0);
-
-            // Center-align the buttons
-            ui.vertical_centered(|ui| {
-                ui.horizontal(|ui| {
-                    if ui
-                        .button(if self.running { "Stop" } else { "Start" })
-                        .clicked()
-                    {
-                        self.running = !self.running;
-                        if self.running {
-                            self.start_time = Some(Instant::now() - self.elapsed);
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(20.0);
+                        // Add toggle button here
+                        if ui
+                            .button(if self.show_system_time {
+                                "Show Timecode"
+                            } else {
+                                "Show System Time"
+                            })
+                            .clicked()
+                        {
+                            self.show_system_time = !self.show_system_time;
                         }
-                    }
-
-                    if ui.button("Reset").clicked() {
-                        self.elapsed = Duration::from_secs(0);
-                        if self.running {
-                            self.start_time = Some(Instant::now());
-                        }
-                        // Reset all cues
-                        for cue in &mut self.cues {
-                            cue.is_playing = false;
-                            cue.progress = 0.0;
-                        }
-                    }
-                });
-            });
-
-            ui.add_space(20.0);
-
-            // Display cues with progress bars
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                for cue in &self.cues {
-                    ui.horizontal(|ui| {
-                        let active_color = if cue.is_playing {
-                            egui::Color32::from_rgb(100, 200, 100)
-                        } else {
-                            egui::Color32::from_rgb(150, 150, 150)
-                        };
-
-                        ui.label(egui::RichText::new(&cue.name).color(active_color).strong());
 
                         ui.label(
-                            egui::RichText::new(Self::format_duration(cue.start_time))
-                                .color(active_color),
+                            egui::RichText::new(if self.show_system_time {
+                                self.format_system_time()
+                            } else {
+                                self.format_timecode()
+                            })
+                            .font(font_id)
+                            .color(egui::Color32::GREEN),
                         );
-
-                        // Progress bar
-                        let progress_response = ui.add(
-                            egui::ProgressBar::new(cue.progress)
-                                .desired_width(200.0)
-                                .desired_height(30.0)
-                                .corner_radius(0.0),
-                        );
-
-                        // Show duration on hover
-                        if progress_response.hovered() {
-                            egui::show_tooltip(
-                                ui.ctx(),
-                                progress_response.layer_id,
-                                egui::Id::new("duration_tooltip"),
-                                |ui| {
-                                    ui.label(format!("Duration: {}s", cue.duration.as_secs()));
-                                },
-                            );
-                        }
                     });
-                }
-            });
 
-            ui.add_space(20.0);
-            ui.label("Override Pads");
-            ui.add_space(10.0);
+                    // Add some space before the buttons
+                    ui.add_space(20.0);
 
-            egui::Grid::new("midi_pads")
-                .spacing([10.0, 10.0])
-                .show(ui, |ui| {
-                    for (i, (active, label)) in self.pad_states.iter_mut().enumerate() {
-                        let response = ui.add(
-                            egui::Button::new(egui::RichText::new(format!("{}", label)))
-                                .min_size(egui::vec2(80.0, 80.0))
-                                .fill(if *active {
+                    // Center-align the buttons
+                    ui.vertical_centered(|ui| {
+                        ui.horizontal(|ui| {
+                            if ui
+                                .button(if self.running { "Stop" } else { "Start" })
+                                .clicked()
+                            {
+                                self.running = !self.running;
+                                if self.running {
+                                    self.start_time = Some(Instant::now() - self.elapsed);
+                                }
+                            }
+
+                            if ui.button("Reset").clicked() {
+                                self.elapsed = Duration::from_secs(0);
+                                if self.running {
+                                    self.start_time = Some(Instant::now());
+                                }
+                                // Reset all cues
+                                for cue in &mut self.cues {
+                                    cue.is_playing = false;
+                                    cue.progress = 0.0;
+                                }
+                            }
+                        });
+                    });
+
+                    ui.add_space(20.0);
+
+                    // Display cues with progress bars
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for cue in &self.cues {
+                            ui.horizontal(|ui| {
+                                let active_color = if cue.is_playing {
                                     egui::Color32::from_rgb(100, 200, 100)
                                 } else {
-                                    egui::Color32::from_rgb(60, 60, 60)
-                                }),
-                        );
+                                    egui::Color32::from_rgb(150, 150, 150)
+                                };
 
-                        if response.clicked() {
-                            *active = !*active;
-                            // Here you can add MIDI handling logic
-                        }
+                                ui.label(
+                                    egui::RichText::new(&cue.name).color(active_color).strong(),
+                                );
 
-                        if (i + 1) % 4 == 0 {
-                            ui.end_row();
+                                ui.label(
+                                    egui::RichText::new(Self::format_duration(cue.start_time))
+                                        .color(active_color),
+                                );
+
+                                // Progress bar
+                                let progress_response = ui.add(
+                                    egui::ProgressBar::new(cue.progress)
+                                        .desired_width(200.0)
+                                        .desired_height(30.0)
+                                        .corner_radius(0.0),
+                                );
+
+                                // Show duration on hover
+                                if progress_response.hovered() {
+                                    egui::show_tooltip(
+                                        ui.ctx(),
+                                        progress_response.layer_id,
+                                        egui::Id::new("duration_tooltip"),
+                                        |ui| {
+                                            ui.label(format!(
+                                                "Duration: {}s",
+                                                cue.duration.as_secs()
+                                            ));
+                                        },
+                                    );
+                                }
+                            });
                         }
-                    }
-                });
+                    });
+
+                    ui.add_space(20.0);
+                    ui.label("Override Pads");
+                    ui.add_space(10.0);
+
+                    egui::Grid::new("midi_pads")
+                        .spacing([10.0, 10.0])
+                        .show(ui, |ui| {
+                            for (i, (active, label)) in self.pad_states.iter_mut().enumerate() {
+                                let response = ui.add(
+                                    egui::Button::new(egui::RichText::new(format!("{}", label)))
+                                        .min_size(egui::vec2(80.0, 80.0))
+                                        .fill(if *active {
+                                            egui::Color32::from_rgb(100, 200, 100)
+                                        } else {
+                                            egui::Color32::from_rgb(60, 60, 60)
+                                        }),
+                                );
+
+                                if response.clicked() {
+                                    *active = !*active;
+                                    // Here you can add MIDI handling logic
+                                }
+
+                                if (i + 1) % 4 == 0 {
+                                    ui.end_row();
+                                }
+                            }
+                        });
+                }
+                AppView::Patch => {
+                    // Your new patch view code here
+                    ui.heading("Patch Editor");
+                    // Add patch editor UI elements
+                }
+            }
         });
 
         egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
