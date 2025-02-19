@@ -186,6 +186,13 @@ impl eframe::App for HaloApp {
                         .range(20.0..=300.0)
                         .fixed_decimals(1),
                 );
+
+                // Right side elements
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Patch").clicked() {
+                        // Add your patch button logic here
+                    }
+                });
             });
         });
 
