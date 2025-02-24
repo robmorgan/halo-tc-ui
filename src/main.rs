@@ -170,7 +170,7 @@ impl HaloApp {
         let spacing = 2.0;
         let inner_size = (size - spacing * 2.0) / 2.0;
 
-        let (id, rect) = ui.allocate_space(egui::vec2(size, size));
+        let (_, rect) = ui.allocate_space(egui::vec2(size, size));
         let painter = ui.painter();
 
         // Draw outer square
@@ -182,6 +182,7 @@ impl HaloApp {
         );
 
         // Draw inner squares
+        let beat_order = [0, 1, 3, 2];
         for i in 0..4 {
             let row = i / 2;
             let col = i % 2;
@@ -193,7 +194,7 @@ impl HaloApp {
 
             let inner_rect = egui::Rect::from_min_size(pos, egui::vec2(inner_size, inner_size));
 
-            let color = if i == self.beat_indicator.current_beat {
+            let color = if beat_order[self.beat_indicator.current_beat] == i {
                 egui::Color32::GREEN
             } else {
                 egui::Color32::DARK_GREEN
