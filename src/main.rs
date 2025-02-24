@@ -38,6 +38,30 @@ impl Cue {
     }
 }
 
+struct BeatIndicator {
+    current_beat: usize,
+    last_beat_time: Instant,
+    beat_duration: Duration,
+}
+
+impl BeatIndicator {
+    fn new() -> Self {
+        Self {
+            current_beat: 0,
+            last_beat_time: Instant::now(),
+            beat_duration: Duration::from_secs_f32(60.0 / 120.0), // Default 120 BPM
+        }
+    }
+
+    fn update(&mut self, bpm: f32) {
+        self.beat_duration = Duration::from_secs_f32(60.0 / bpm);
+        if self.last_beat_time.elapsed() >= self.beat_duration {
+            self.current_beat = (self.current_beat + 1) % 4;
+            self.last_beat_time = Instant::now();
+        }
+    }
+}
+
 enum AppView {
     Timeline,
     Patch,
@@ -55,6 +79,7 @@ struct HaloApp {
     fps: f32,
     effects_count: usize,
     pad_states: Vec<(bool, String)>, // (is_active, label)
+    beat_indicator: BeatIndicator,
 }
 
 impl Default for HaloApp {
@@ -90,6 +115,7 @@ impl Default for HaloApp {
                 (false, "Sweep".to_string()),
                 (false, "Blast".to_string()),
             ],
+            beat_indicator: BeatIndicator::new(),
         }
     }
 }
@@ -138,6 +164,48 @@ impl HaloApp {
         let now = chrono::Local::now();
         now.format("%H:%M:%S.%3f").to_string()
     }
+
+    fn draw_beat_indicator(&mut self, ui: &mut egui::Ui) {
+        let size = 24.0;
+        let spacing = 2.0;
+        let inner_size = (size - spacing * 2.0) / 2.0;
+
+        let (id, rect) = ui.allocate_space(egui::vec2(size, size));
+        let painter = ui.painter();
+
+        // Draw outer square
+        painter.rect_stroke(
+            rect,
+            0.0,
+            egui::Stroke::new(1.0, egui::Color32::GREEN),
+            egui::StrokeKind::Outside,
+        );
+
+        // Draw inner squares
+        for i in 0..4 {
+            let row = i / 2;
+            let col = i % 2;
+            let pos = rect.min
+                + egui::vec2(
+                    spacing + col as f32 * (inner_size + spacing),
+                    spacing + row as f32 * (inner_size + spacing),
+                );
+
+            let inner_rect = egui::Rect::from_min_size(pos, egui::vec2(inner_size, inner_size));
+
+            let color = if i == self.beat_indicator.current_beat {
+                egui::Color32::GREEN
+            } else {
+                egui::Color32::DARK_GREEN
+            };
+
+            painter.rect_filled(inner_rect, 0.0, color);
+        }
+
+        if self.running {
+            self.beat_indicator.update(self.bpm);
+        }
+    }
 }
 
 impl eframe::App for HaloApp {
@@ -174,6 +242,9 @@ impl eframe::App for HaloApp {
 
         egui::TopBottomPanel::top("header").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                self.draw_beat_indicator(ui);
+                ui.add_space(8.0);
+
                 if ui
                     .button(if self.link_enabled {
                         "Link ●"
